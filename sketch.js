@@ -41,6 +41,52 @@ var randomtint = [.1, .1, .1]
 var pts = [];
 
 
+var palettesstrings = [
+    'f46036-5b85aa-414770-372248-f55d3e-878e88-f7cb15-76bed0-9cfffa-acf39d-b0c592-a97c73-af3e4d',
+    '121212-F05454-30475E-F5F5F5-F39189-BB8082-6E7582-046582',
+    '084c61-db504a-e3b505-4f6d7a-56a3a6-177e89-084c61-db3a34-ffc857-323031',
+    '32373b-4a5859-f4d6cc-f4b860-c83e4d-de6b48-e5b181-f4b9b2-daedbd-7dbbc3',
+    'fa8334-fffd77-ffe882-388697-54405f-ffbc42-df1129-bf2d16-218380-73d2de',
+    '3e5641-a24936-d36135-282b28-83bca9-ed6a5a-f4f1bb-9bc1bc-e6ebe0-36c9c6',
+    '304d7d-db995a-bbbbbb-222222-fdc300-664c43-873d48-dc758f-e3d3e4-00ffcd',
+    '5fad56-f2c14e-f78154-4d9078-b4431c-8789c0-45f0df-c2cae8-8380b6-111d4a',
+    '4C3A51-774360-B25068-FACB79-dddddd-2FC4B2-12947F-E71414-F17808-Ff4828',
+    '087e8b-ff5a5f-3c3c3c-f5f5f5-c1839f-1B2430-51557E-816797-D6D5A8-ff2222',
+    '4C3F61-B958A5-9145B6-FF5677-65799B-C98B70-EB5353-394359-F9D923-36AE7C-368E7C-187498',
+    '283d3b-197278-edddd4-c44536-772e25-0d3b66-faf0ca-f4d35e-ee964b-f95738-fe5d26-f2c078-faedca-c1dbb3-7ebc89-3d5a80-98c1d9-e0fbfc-ee6c4d-293241',
+    '99e2b4-99d4e2-f94144-f3722c-f8961e-f9844a-f9c74f-90be6d-43aa8b-4d908e-577590-277da1',
+    '080708-3772ff-df2935-fdca40-e6e8e6-d8dbe2-a9bcd0-58a4b0-373f51-1b1b1e',
+];
+var palettes = [];
+palettesstrings.forEach(stri => {
+  var palette = [];
+  var swatches = stri.split('-');
+  for(var s = 0; s < swatches.length; s++){
+    var cc = hex2rgb(swatches[s]);
+    cc = rgb2hsv(...cc);
+    cc[1] *= 0.8;
+    if(fxrand() < .5){
+        cc[1] *= 0.5;
+        cc[2] *= 0.7;
+    }
+    cc = hsv2rgb(...cc);
+    palette.push(cc);
+  }
+  palettes.push(palette);
+})
+
+var palette0 = palettes[Math.floor(palettes.length*fxrand())];
+//palette0 = palettes[12]
+palette0 = shuffle(palette0);
+
+function getRandomColor(pal){
+    if(pal){
+        return pal[Math.floor(pal.length*fxrand())];
+    }
+    else{
+        return palette0[Math.floor(palette0.length*fxrand())];
+    }
+}
 
 var Engine = Matter.Engine,
     Composites = Matter.Composites,
@@ -141,7 +187,7 @@ function setup(){
     fbo.begin();    
     ortho(-resx/2*resscale, resx/2*resscale, -resy/2*resscale, resy/2*resscale, 0, 4444);
 
-    initSim2();
+    initSim();
 
     fbo.end();
     showall();
@@ -231,7 +277,7 @@ function initSim(){
                 else{
                     var neigh = grid[j][i+1];
                     //var inter = new Particle((neigh.pos0.x + p.body.position.x)/2, (neigh.pos0.y + p.body.position.y)/2, 3);
-                    var constr1 = getConstr(p.body, neigh.body, vec0.copy(), vec0.copy(), .99*lennz*p.pos0.dist(neigh.pos0), .1, i%2==0 ? 'red' : 'purple');
+                    var constr1 = getConstr(p.body, neigh.body, vec0.copy(), vec0.copy(), .99*lennz*p.pos0.dist(neigh.pos0), .1, 'h');
                     //var constr2 = getConstr(inter.body, neigh.body, vec0.copy(), vec0.copy(), .99*lennz*inter.pos0.dist(neigh.pos0), .3);
                     bandc.push(constr1);
                     //bandc.push(constr2);
@@ -245,7 +291,7 @@ function initSim(){
                 else{
                     var neigh = grid[j+1][i];
                     //var inter = new Particle((neigh.pos0.x + p.body.position.x)/2, (neigh.pos0.y + p.body.position.y)/2, 3);
-                    var constr1 = getConstr(p.body, neigh.body, vec0.copy(), vec0.copy(), .99*lennz*p.pos0.dist(neigh.pos0), .1, j%2==0 ? 'blue' : 'green');
+                    var constr1 = getConstr(p.body, neigh.body, vec0.copy(), vec0.copy(), .99*lennz*p.pos0.dist(neigh.pos0), .1, 'v');
                     //var constr2 = getConstr(inter.body, neigh.body, vec0.copy(), vec0.copy(), .99*lennz*inter.pos0.dist(neigh.pos0), .3);
                     bandc.push(constr1);
                     //bandc.push(constr2);
@@ -256,7 +302,7 @@ function initSim(){
                 bandc.push(constr);
             }
             if(i == grid[j].length-1 && j == 0){
-                var constr = getConstr(p.body, null, vec0.copy(), cv_(+resx/2, -resy/2), random(.2, .7)*p.pos0.dist(cv_(+resx/2, -resy/2)), .9, 'blue');
+                var constr = getConstr(p.body, null, vec0.copy(), cv_(+resx/2, -resy/2), random(.2, .7)*p.pos0.dist(cv_(+resx/2, -resy/2)), .9, 'red');
                 bandc.push(constr);
             }
             if(i == grid[j].length-1 && j == grid.length-1){
@@ -264,7 +310,7 @@ function initSim(){
                 bandc.push(constr);
             }
             if(i == 0 && j == grid.length-1){
-                var constr = getConstr(p.body, null, vec0.copy(), cv_(-resx/2, +resy/2), random(.2, .7)*p.pos0.dist(cv_(-resx/2, +resy/2)), .9, 'blue');
+                var constr = getConstr(p.body, null, vec0.copy(), cv_(-resx/2, +resy/2), random(.2, .7)*p.pos0.dist(cv_(-resx/2, +resy/2)), .9, 'red');
                 bandc.push(constr);
             }
         }
@@ -285,110 +331,6 @@ function initSim(){
         });
 
     Composite.add(engine.world, mouseConstraint);
-}
-
-function initSim2(){
-    engine = Engine.create()
-    //engine.gravity.y = .1;
-    engine.gravity.x = 0;
-    engine.gravity.y = 0;
-    //engine.gravity.y = .03;
-
-
-    var bandc = getBandc();
-    var bodies = [];
-
-    
-    var ground = new Ground(0, resy / 2 + 0, resx, 20, 0, true);
-    grounds.push(ground);
-    bandc.push(ground.body);
-
-
-    Composite.add(engine.world, bandc);
-
-    mouse = Mouse.create(document.getElementById("maincanvas"));
-    var mouseConstraint = MouseConstraint.create(engine, {
-            mouse: mouse,
-            constraint: {
-                // allow bodies on mouse to rotate
-                angularStiffness: 0,
-                render: {
-                    visible: false
-                }
-            }
-        });
-
-    Composite.add(engine.world, mouseConstraint);
-}
-
-function getBandc(){
-    var nnx = 100;
-    var nny = 100;
-    var dd = 6.6;
-    var dims = nnx*dd;
-    var bandc = [];
-    for(var j = 0; j < nny; j++){
-        var x = random(-1, 1);
-        var y = map(j, 0, nny-1, -dims, dims);
-        var p = new Particle(x, y, 4 );
-        particles.push(p);
-        bandc.push(p.body);
-    }
-
-    var vec0 = createVector(0, 0);
-    var cv_ = createVector;
-    var frqx = 0.005;
-    var frqy = 0.03;
-    frqx = random(.01, .04)
-    frqy = random(.005, .01)
-    var thresh = random(.06, .06)*2;
-    for(var j = 0; j < particles.length; j++){
-        var p = particles[j];
-        var prob1 = power(noise(p.body.position.x*frqx+resx, p.body.position.y*frqy+resy, 31.4131), 4) < thresh;
-        var prob2 = power(noise(p.body.position.x*frqx+resx+2113.344, p.body.position.y*frqy+resy+2113.344, 55.2254), 4) < thresh;
-        var lennz = map(power(noise(p.body.position.x*frqx+resx, p.body.position.y*frqy+resy, 87.6612), 3), 0, 1, .5, 2);
-        //var mass = map(power(noise(p.body.position.x*frqx+resx, p.body.position.y*frqy+resy, 87.6612), 7), 0, 1, .5, 20);
-        //p.mass = mass;
-        if(j < particles.length-1){
-            var neigh = particles[j+1];
-            var constr = getConstr(p.body, neigh.body, vec0.copy(), vec0.copy(), p.pos0.dist(neigh.pos0), .3, j==0 ? 'cool' : 'coolblack');
-            bandc.push(constr);
-        }
-        if(j < particles.length-3){
-            var neigh = particles[j+3];
-            var constr = getConstr(p.body, neigh.body, vec0.copy(), vec0.copy(), p.pos0.dist(neigh.pos0), .0052, 'invisible');
-            bandc.push(constr);
-        }
-    }
-    particles = [];
-    for(var j = 0; j < nny; j++){
-        var x = random(-1, 1) + 100;
-        var y = map(j, 0, nny-1, -dims, dims);
-        var p = new Particle(x, y, 4);
-        particles.push(p);
-        bandc.push(p.body);
-    }
-    
-    for(var j = 0; j < particles.length; j++){
-        var p = particles[j];
-        var prob1 = power(noise(p.body.position.x*frqx+resx, p.body.position.y*frqy+resy, 31.4131), 4) < thresh;
-        var prob2 = power(noise(p.body.position.x*frqx+resx+2113.344, p.body.position.y*frqy+resy+2113.344, 55.2254), 4) < thresh;
-        var lennz = map(power(noise(p.body.position.x*frqx+resx, p.body.position.y*frqy+resy, 87.6612), 3), 0, 1, .5, 2);
-        //var mass = map(power(noise(p.body.position.x*frqx+resx, p.body.position.y*frqy+resy, 87.6612), 7), 0, 1, .5, 20);
-        //p.mass = mass;
-        if(j < particles.length-1){
-            var neigh = particles[j+1];
-            var constr = getConstr(p.body, neigh.body, vec0.copy(), vec0.copy(), p.pos0.dist(neigh.pos0), .3, j==0 ? 'notcool' : 'notcoolblack');
-            bandc.push(constr);
-        }
-        if(j < particles.length-4){
-            var neigh = particles[j+4];
-            var constr = getConstr(p.body, neigh.body, vec0.copy(), vec0.copy(), p.pos0.dist(neigh.pos0), .02, 'invisible');
-            //bandc.push(constr);
-        }
-    }
-
-    return bandc;
 }
 
 var mouse;
@@ -398,6 +340,9 @@ function runSim() {
     mouse.position = { 'x': map(mouseX, 0, width, -resx/2, resx/2), 'y': map(mouseY, 0, height, -resy/2, resy/2) };
 }
 var renderMode;
+
+var frqh = map(fxrand(), 0, 1, 0.0005, 0.03);
+var frqv = map(fxrand(), 0, 1, 0.0005, 0.03);
 
 function drawSim() {
 
@@ -417,136 +362,35 @@ function drawSim() {
         var x2 = constr.bodyB ? constr.bodyB.position.x : constr.pointB.x;
         var y2 = constr.bodyB ? constr.bodyB.position.y : constr.pointB.y;
 
-        var co = [.1, .1, .1]
+        co = palette0[floor((k*.01))%palette0.length]
         if(constr.label == 'red'){
-            co = map2((map(power(noise(k*1.231, 33.4155), 4), 0, 1, 0, .02)+shf)%1);
-            co = brightencol(co, -random(.2, .6));
-            co = saturatecol(co, -random(.6, .7));
+            co = palette0[floor((k*.01))%palette0.length]
         }
-        if(constr.label == 'green'){
-            co = map2((map(power(noise(k*1.231, 66.7864), 4), 0, 1, 0.52, .53)+shf)%1);
-            co = brightencol(co, -random(.3, .4));
-            co = saturatecol(co, -random(.3, .5));
+        if(constr.label == 'h'){
+            co = palette0[floor((k*frqh))%palette0.length]
         }
-        if(constr.label == 'blue'){
-            co = map2((map(power(noise(k*1.231, 66.7864), 4), 0, 1, 0.54, .55)+shf)%1);
-            co = brightencol(co, -random(.3, .4));
-            co = saturatecol(co, random(.2, .3));
+        if(constr.label == 'v'){
+            co = palette0[floor((k*frqv)+ 18)%palette0.length]
         }
-        if(constr.label == 'purple'){
-            co = map2((map(power(noise(k*1.231, 66.7864), 4), 0, 1, 0.61, .62)+shf)%1);
-            co = brightencol(co, -random(.3, .4));
-            co = saturatecol(co, -random(.4, .5));
-        }
-        if(constr.label == 'invisible'){
-            co = [0.3, 0.3, 0.8];
-            //continue
-        }
-        //var co = map2((shf+1.61*noise(round(k*0.0092, k*0.008)))%1.);
-        //var co1 = map2((shf+1.61*noise(round(k*0.000035292, k*0.008)))%1.);
-        //co = saturatecol(co, -.6);
-        //var co2 = map2((shf+1.61*noise(round(k*0.0015292, k*0.008)))%1.);
-        //co[0] = co1[0]*.9 + (1-.9)*co2[0];
-        //co[1] = co1[1]*.9 + (1-.9)*co2[1];
-        //co[1] = co1[2]*.9 + (1-.9)*co2[2];
+
         if(renderMode == 'simple'){
             stroke(...co);
-            if(constr.label == 'invisible'){
-                //line(x1, y1, -2, x2, y2, -2);
-            }
-            else{
-                //line(x1, y1, x2, y2);
-            }
+            line(x1, y1, x2, y2);
         }
         if(renderMode == 'detail'){
             noStroke();
             fill(...co);
-            //myline(x1, y1, x2, y2);
-        }
-        if(constr.label == 'cool'){
-            push();
-            translate(0,0,2);
-            fill(.62, .62, .65);
-            noStroke();
-            rect(x1+10+42, y1+6-20, 90, 15)
-            translate(0,0,1);
-            fill(0);
-            noStroke();
-            textSize(14);
-            text("cool curve", x1+10, y1-10)
-            pop();
-        }
-        if(constr.label == 'notcool'){
-            push();
-            translate(0,0,2);
-            fill(.62, .62, .65);
-            noStroke();
-            rect(x1+10+42+17, y1+6-20, 90+17*2, 15)
-            translate(0,0,1);
-            fill(0);
-            noStroke();
-            textSize(14);
-            text("not cool curve", x1+10, y1-10)
-            pop();
+            myline(x1, y1, x2, y2);
         }
     }
 
-    if(invi){
-        push();
-        noFill();
-        stroke(...map2(0.97));
-        strokeWeight(2)
-        for(var k = 0; k < allConstraints.length; k++){
-            var constr = allConstraints[k];
-            if(constr.label == 'invisible'){
-                var x1 = constr.bodyA ? constr.bodyA.position.x : constr.pointA.x;
-                var y1 = constr.bodyA ? constr.bodyA.position.y : constr.pointA.y;
-                var x2 = constr.bodyB ? constr.bodyB.position.x : constr.pointB.x;
-                var y2 = constr.bodyB ? constr.bodyB.position.y : constr.pointB.y;
-                line(x1, y1, x2, y2);
-            }
-        }
-        pop();
-    }
-    noFill();
-    stroke(0.1);
-    beginShape();
-    var first = false;
-    for(var k = 0; k < allConstraints.length; k++){
-        var constr = allConstraints[k];
-        if(constr.label == 'cool' || constr.label == 'coolblack'){
-            var x1 = constr.bodyA ? constr.bodyA.position.x : constr.pointA.x;
-            var y1 = constr.bodyA ? constr.bodyA.position.y : constr.pointA.y;
-            var x2 = constr.bodyB ? constr.bodyB.position.x : constr.pointB.x;
-            var y2 = constr.bodyB ? constr.bodyB.position.y : constr.pointB.y;
-            if(!first)
-                vertex(x1, y1);
-            curveVertex(x2, y2);
-            first = true;
-        }
-    }
-    vertex(x2, y2);
-    endShape();
-    beginShape();
-    var ll = '';
-    for(var k = 0; k < allConstraints.length; k++){
-        var constr = allConstraints[k];
-        if(constr.label == 'notcool' || constr.label == 'notcoolblack'){
-            var x1 = constr.bodyA ? constr.bodyA.position.x : constr.pointA.x;
-            var y1 = constr.bodyA ? constr.bodyA.position.y : constr.pointA.y;
-            var x2 = constr.bodyB ? constr.bodyB.position.x : constr.pointB.x;
-            var y2 = constr.bodyB ? constr.bodyB.position.y : constr.pointB.y;
-            vertex(x1, y1);
-        }
-    }
-    endShape();
 
     for(var k = 0; k < particles.length; k++){
         //particles[k].draw();
     }
 
     for (var k = 0; k < grounds.length; k++) {
-        grounds[k].draw();
+        //grounds[k].draw();
     }
 }
 
@@ -601,6 +445,18 @@ class Ground{
 
 var issim = true;
 var sim;
+
+var bgc = getRandomColor();
+bgc = rgb2hsl(...bgc);
+bgc[1] *= 0.5;
+bgc[2] = 0.1;
+bgc = hsl2rgb(...bgc);
+
+var bgc2 = bgc;
+bgc2 = rgb2hsl(...bgc2);
+bgc2[2] = 0.16;
+bgc2 = hsl2rgb(...bgc2);
+
 function draw(){
     fbo.begin();
     clear();
@@ -608,12 +464,18 @@ function draw(){
     push();
     scale(resscale);
 
-    var bgc = map2(.5);
-    bgc = brightencol(bgc, -.3);
-    bgc = saturatecol(bgc, -.3);
-    bgc = [.12, .12, .15]
-    bgc = [.62, .62, .65]
-    background(...bgc);
+    //bgc = [.12, .12, .15]
+    //bgc = [.62, .62, .65]
+    //background(...bgc);
+    noStroke();
+    beginShape();
+    fill(...bgc);
+    vertex(-resx/2, -resy/2);
+    vertex(+resx/2, -resy/2);
+    fill(...bgc);
+    vertex(+resx/2, +resy/2);
+    vertex(-resx/2, +resy/2);
+    endShape();
     if(issim){
         for(var k = 0; k < 5; k++){
             runSim();
