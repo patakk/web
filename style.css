@@ -1,0 +1,31 @@
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  touch-action: none;
+  background-color: #9b9b9b;
+
+
+  display: flex;
+
+  /* This centers our sketch horizontally. */
+  justify-content: center;
+
+  /* This centers our sketch vertically. */
+  align-items: center;
+
+}
+
+canvas {
+  display: block;
+
+}
+
+.loadingclass{
+  font-family: "Courier new";
+  font-size: 16px;
+  font-weight: normal;
+}
