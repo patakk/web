@@ -99,6 +99,7 @@ var Engine = Matter.Engine,
 
 var engine;
 var grounds = [];
+var lines = [];
 var bodies = [];
 
 function preload() {
@@ -187,7 +188,7 @@ function setup(){
     fbo.begin();    
     ortho(-resx/2*resscale, resx/2*resscale, -resy/2*resscale, resy/2*resscale, 0, 4444);
 
-    initSim();
+    initWeb();
 
     fbo.end();
     showall();
@@ -375,6 +376,7 @@ function drawSim() {
 
         if(renderMode == 'simple'){
             stroke(...co);
+            stroke(.7);
             line(x1, y1, x2, y2);
         }
         if(renderMode == 'detail'){
@@ -517,6 +519,249 @@ function draw(){
 
 }
 
+function initWeb(){
+    engine = Engine.create()
+    //engine.gravity.y = .1;
+    engine.gravity.x = 0;
+    engine.gravity.y = .1;
+    var bandc = [];
+
+    var pad = 250;
+    lines.push(new Line(-(resx/2-pad), -(resy/2-pad), +(resx/2-pad), -(resy/2-pad), 'wall', 1.0));
+    lines.push(new Line(+(resx/2-pad), -(resy/2-pad), +(resx/2-pad), +(resy/2-pad), 'wall', 1.0));
+    lines.push(new Line(+(resx/2-pad), +(resy/2-pad), -(resx/2-pad), +(resy/2-pad), 'wall', 1.0));
+    lines.push(new Line(-(resx/2-pad), +(resy/2-pad), -(resx/2-pad), -(resy/2-pad), 'wall', 1.0));
+    
+    // radial
+    var rx = 0*random(-200, 200);
+    var ry = 0*random(-200, 200);
+    var nn = round(random(16, 26));
+    var nn = round(random(33, 35));
+    var r = resx;
+    var body0 = createVector(rx, ry);
+    bodies.push(body0);
+    for(var k = 0; k < nn; k++){
+      var ang = map(k, 0, nn, 0, 2*PI) + PI/nn*random(-1,1);
+      var x = rx + r*cos(ang);
+      var y = ry + r*sin(ang);
+      var line = new Line(rx, ry, x, y, 'web');
+      var minintersection = createVector(x, y);
+      var mindist = 1000000;
+      var thesplit;
+      for(var q = 0; q < lines.length; q++){
+        var tline = lines[q];
+        if(tline.label.includes('web'))
+          continue;
+        if(doLinesIntersect(line.a, line.b, tline.a, tline.b)){
+          var intersection = findLineIntersection(line.a, line.b, tline.a, tline.b);
+          if (!intersection){
+            intersection = findLineIntersection(line.a, line.b, tline.b, tline.a);
+            if (!intersection){}
+            else{
+              if(intersection.dist(line.a) < mindist){
+                mindist = intersection.dist(line.a);
+                minintersection = intersection;
+                thesplit = tline;
+              }
+            }
+          }
+          else{
+            if(intersection.dist(line.a) < mindist){
+              mindist = intersection.dist(line.a);
+              minintersection = intersection;
+              thesplit = tline;
+            }
+          }
+        }
+      }
+      
+      var nline = new Line(rx, ry, minintersection.x, minintersection.y, 'web', random(.5, .6), 0, null);
+
+      if(nline.getLength() > 15){
+        var nlines = [];
+        for(var q = 0; q < lines.length; q++){
+            if(lines[q] == thesplit)
+              continue;
+            nlines.push(lines[q]);
+          }
+          
+          //bodies.push(minintersection);
+          nlines.push(nline);
+          nlines.push(new Line(thesplit.a.x, thesplit.a.y, minintersection.x, minintersection.y, thesplit.label+'_long', 1.0));
+          nlines.push(new Line(thesplit.b.x, thesplit.b.y, minintersection.x, minintersection.y, thesplit.label+'_long', 1.0));
+          
+          lines = nlines;
+      }
+      
+    }
+    
+    var vr = createVector(rx, ry);
+    var qq = round(random(270, 274));
+    for(var k = 0; k < qq; k++){
+      var aa = random(2*PI);
+      var rr = map(pow(random(1), .25), 0, 1, 0, 500);
+      var x0 = rx + rr*cos(aa);
+      var y0 = ry + rr*sin(aa);
+      while(x0 < -resx/2+pad || x0 > resx/2-pad || y0 < -resy/2+pad || y0 > resy/2-pad){
+        rr = map(pow(random(1), .25), 0, 1, 0, 200);
+        x0 = rx + rr*cos(aa);
+        y0 = ry + rr*sin(aa);
+      }
+      var v0 = createVector(x0, y0)
+      var ang = p5.Vector.sub(v0, vr).heading() + PI/2;
+      var r = resx;
+      var x1 = x0 + r*cos(ang);
+      var y1 = y0 + r*sin(ang);
+      var x2 = x0 + r*cos(ang+PI);
+      var y2 = y0 + r*sin(ang+PI);
+      var lineright = new Line(x0, y0, x1, y1, 'web', 1.0);
+      var lineleft = new Line(x0, y0, x2, y2, 'web', 1.0);
+      var right = createVector(x1, y1);
+      var left = createVector(x2, y2);
+      var mdright = 1000000;
+      var mdleft = 1000000;
+      var rightsplit;
+      var leftsplit;
+      for(var q = 0; q < lines.length; q++){
+        var tline = lines[q];
+        if(doLinesIntersect(lineright.a, lineright.b, tline.a, tline.b) || doLinesIntersect(lineright.b, lineright.a, tline.a, tline.b)){
+          var intersectionright = findLineIntersection(lineright.a, lineright.b, tline.b, tline.a);
+          if (intersectionright){
+            if(intersectionright.dist(lineright.a) < mdright){
+              mdright = intersectionright.dist(lineright.a);
+              right = intersectionright;
+              rightsplit = tline;
+            }
+          }
+          else{
+            intersectionright = findLineIntersection(lineright.a, lineright.b, tline.a, tline.b);
+            if(!intersectionright)
+              continue;
+            if(intersectionright.dist(lineright.a) < mdright){
+              mdright = intersectionright.dist(lineright.a);
+              right = intersectionright;
+              rightsplit = tline;
+            }
+          }
+        }
+        if(doLinesIntersect(lineleft.a, lineleft.b, tline.a, tline.b) || doLinesIntersect(lineleft.a, lineleft.b, tline.b, tline.a)){
+          var intersectionleft = findLineIntersection(lineleft.a, lineleft.b, tline.b, tline.a);
+          if (intersectionleft){
+            if(intersectionleft.dist(lineleft.a) < mdleft){
+              mdleft = intersectionleft.dist(lineleft.a);
+              left = intersectionleft;
+              leftsplit = tline;
+            }
+          }
+          else{
+            intersectionleft = findLineIntersection(lineleft.a, lineleft.b, tline.a, tline.b);
+            if(!intersectionleft)
+              continue;
+            if(intersectionleft.dist(lineleft.a) < mdleft){
+              mdleft = intersectionleft.dist(lineleft.a);
+              left = intersectionleft;
+              leftsplit = tline;
+            }
+          }
+        }
+        
+      }
+      var nlines = [];
+      
+      for(var q = 0; q < lines.length; q++){
+        if(lines[q] == rightsplit)
+          continue;
+        if(lines[q] == leftsplit)
+          continue;
+        nlines.push(lines[q]);
+      }
+      
+      if(right && left){
+        bodies.push(left)
+        bodies.push(right)
+        nlines.push(new Line(left.x, left.y, right.x, right.y, 'web', random(.2, .7), leftsplit.label.includes('wall') ? null : bodies.length-2, rightsplit.label.includes('wall') ? null : bodies.length-1));
+        nlines.push(new Line(leftsplit.a.x, leftsplit.a.y, left.x, left.y, leftsplit.label, leftsplit.length, leftsplit.b1, bodies.length-2));
+        nlines.push(new Line(leftsplit.b.x, leftsplit.b.y, left.x, left.y, leftsplit.label, leftsplit.length, leftsplit.b2, bodies.length-2));
+        nlines.push(new Line(rightsplit.a.x, rightsplit.a.y, right.x, right.y, rightsplit.label, rightsplit.length, rightsplit.b1, bodies.length-1));
+        nlines.push(new Line(rightsplit.b.x, rightsplit.b.y, right.x, right.y, rightsplit.label, rightsplit.length, rightsplit.b2, bodies.length-1));
+      }
+      
+      lines = nlines;
+    }
+
+    var vec0 = createVector(0, 0);
+    for(var k = 0; k < bodies.length; k++){
+        if(k == 0)
+        print(bodies[k])
+        var p = new Particle(bodies[k].x, bodies[k].y, 3);
+        particles.push(p);
+        bandc.push(p.body);
+    }
+    for(var k = 0; k < lines.length; k++){
+        if(lines[k].label.includes('wall'))
+            continue;
+        var bo1 = null;
+        var bo2 = null;;
+        var po1 = vec0.copy();
+        var po2 = vec0.copy();
+        if(lines[k].b1 !== null) bo1 = particles[lines[k].b1].body;
+        if(lines[k].b2 !== null) bo2 = particles[lines[k].b2].body;
+        if(lines[k].b1 === null) po1 = lines[k].a;
+        if(lines[k].b2 === null) po2 = lines[k].b;
+        var dd = lines[k].a.dist(lines[k].b)
+        var stf = 0.04;
+        if(lines[k].label.includes('long'))
+            stf = .8;
+        var constr = getConstr(bo1, bo2, po1, po2, lines[k].length*dd, stf, 'red');
+        bandc.push(constr);
+    }
+
+    Composite.add(engine.world, bandc);
+
+    mouse = Mouse.create(document.getElementById("maincanvas"));
+    var mouseConstraint = MouseConstraint.create(engine, {
+            mouse: mouse,
+            constraint: {
+                // allow bodies on mouse to rotate
+                angularStiffness: 0,
+                render: {
+                    visible: false
+                }
+            }
+        });
+
+    Composite.add(engine.world, mouseConstraint);
+}
+
+class Line{
+    constructor(x1, y1, x2, y2, label, length, b1, b2){
+      this.x1 = x1;
+      this.y1 = y1;
+      this.x2 = x2;
+      this.y2 = y2;
+      this.b1 = b1;
+      this.b2 = b2;
+      this.length = length;
+      this.a = createVector(x1, y1);
+      this.b = createVector(x2, y2);
+      this.label = label;
+    }
+
+    getLength(){
+        return this.a.dist(this.b);
+    }
+    
+    draw(){
+      stroke(77+(1000*noise(this.x1+this.x2,this.y1+this.y2))%166, 55, 0);
+      if(this.label == 'wall'){
+        stroke(55, 33, 99+(1000*noise(this.x1+this.x2,this.y1+this.y2))%166);
+      }
+      //stroke(222);
+      line(this.x1, this.y1, this.x2, this.y2);
+      //line(this.x1+random(-6,6), this.y1+random(-6,6), this.x2+random(-6,6), this.y2+random(-6,6));
+    }
+  }
+
 var an = fxrand() * 3.14159;
 
 function showall(){
@@ -617,98 +862,6 @@ function windowResized() {
 }
 
 
-function footer(thesymb){
-    var symbs = ",*xae";
-    symbs = "*xz";
-    var symb = symbs[floor(random(symbs.length))];
-    if (thesymb)
-        symb = thesymb;
-    var fu = 15;
-    var ddx = resx-fu*2;
-    var nnx = round(ddx/12);
-    for(var k = 0; k < nnx; k++){
-        var x = map(k, 0, nnx-1, -resx/2+fu, resx/2-fu);
-        var y = resy/2-fu*1.;
-        //text('*', x, +y);
-        //text('*', x, -y);
-    }
-
-    var ddy = resy-fu*2;
-    var nny = round(ddy/12);
-    for(var k = 0; k < nny; k++){
-        var y = map(k, 0, nny-1, -resy/2+fu, resy/2-fu);
-        var x = resx/2-fu*1.;
-        //text('*', +x, y);
-        //text('*', -x, y);
-    }
-
-    var x1 = -resx/2 + fu;
-    var y1 = -resy/2 + fu;
-    var x2 = +resx/2 - fu;
-    var y2 = +resy/2 - fu;
-
-    var det = 12;
-    var nn;
-    nn = round(dist(x1,y1,x2,y1)/det);
-    fill(0.004);
-    noStroke();
-    push();
-    if(symb == '.' || symb == ','){
-        translate(0, -det/2);
-    }
-    for(var kk = 0; kk < nn; kk++){
-        var x = map(kk, 0, nn, x1, x2);
-        var y = y1;
-        text(symb, x, y);
-        if(symb!='*') text(symb, x+random(-.5,.5), y+random(-.5,.5));
-    }
-
-    nn = round(dist(x2,y1,x2,y2)/det);
-    for(var kk = 0; kk < nn; kk++){
-        var x = x2;
-        var y = map(kk, 0, nn, y1, y2);
-        text(symb, x, y);
-        if(symb!='*') text(symb, x+random(-.5,.5), y+random(-.5,.5));
-    }
-
-    nn = round(dist(x2,y2,x1,y2)/det);
-    for(var kk = 0; kk < nn; kk++){
-        var x = map(kk, 0, nn, x2, x1);
-        var y = y2;
-        text(symb, x, y);
-        if(symb!='*') text(symb, x+random(-.5,.5), y+random(-.5,.5));
-    }
-
-    nn = round(dist(x1,y2,x1,y1)/det);
-    for(var kk = 0; kk < nn; kk++){
-        var x = x1;
-        var y = map(kk, 0, nn, y2, y1);
-        text(symb, x, y);
-        if(symb!='*') text(symb, x+random(-.5,.5), y+random(-.5,.5));
-    }
-    pop();
-}
-
-function polyToColliders(poly){
-    var grounds = [];
-    for(var i = 0; i < poly.length-1; i++){
-        var p1 = poly[i];
-        var p2 = poly[(i+1)%poly.length];
-
-        var mid = p5.Vector.add(p1, p2);
-        mid.mult(.5);
-        var p12 = p5.Vector.sub(p2, p1);
-        var dd = p12.mag();
-        var ang = p12.heading();
-
-        var body = Bodies.rectangle(mid.x, mid.y, dd, 20, {isStatic: true, label: "custom", friction: 1,frictionStatic: Infinity});
-        Matter.Body.rotate(body, ang);
-
-        grounds.push(body);
-    }
-    return grounds;
-}
-
 var colpolys = [];
 
 function rotateArr(arr, num){
@@ -735,28 +888,6 @@ function min(a, b){
     return b;
 }
 
-
-function rotateAround(vect, axis, angle) {
-    // Make sure our axis is a unit vector
-    axis = p5.Vector.normalize(axis);
-  
-    return p5.Vector.add(
-      p5.Vector.mult(vect, cos(angle)),
-      p5.Vector.add(
-        p5.Vector.mult(
-          p5.Vector.cross(axis, vect),
-          sin(angle)
-        ),
-        p5.Vector.mult(
-          p5.Vector.mult(
-            axis,
-            p5.Vector.dot(axis, vect)
-          ),
-          (1 - cos(angle))
-        )
-      )
-    );
-  }
 
 
 
@@ -798,68 +929,6 @@ function myline(x1, y1, x2, y2){
     }
 }
 
-function gethobbypoints(knots, cycle, det=12){
-    var hobbypts = [];
-    for (var i=0; i<knots.length-1; i++) {
-        var p0x = knots[i].x_pt;
-        var p1x = knots[i].rx_pt;
-        var p2x = knots[(i+1)%knots.length].lx_pt;
-        var p3x = knots[(i+1)%knots.length].x_pt;
-        var p0y = knots[i].y_pt;
-        var p1y = knots[i].ry_pt;
-        var p2y = knots[(i+1)%knots.length].ly_pt;
-        var p3y = knots[(i+1)%knots.length].y_pt;
-
-        //bezier(p0x, p0y, p1x, p1y, p2x, p2y, p3x, p3y);
-
-        var steps = 44;
-        var totald = 0;
-        var algorithm = 0;
-        if(algorithm == 0){
-            for(var st = 0; st < steps; st++){
-                var t = map(st, 0, steps, 0, 1);
-                var tn = map(st+1, 0, steps, 0, 1);
-                x = (1-t)*(1-t)*(1-t)*p0x + 3*(1-t)*(1-t)*t*p1x + 3*(1-t)*t*t*p2x + t*t*t*p3x;
-                y = (1-t)*(1-t)*(1-t)*p0y + 3*(1-t)*(1-t)*t*p1y + 3*(1-t)*t*t*p2y + t*t*t*p3y;
-                
-                xn = (1-tn)*(1-tn)*(1-tn)*p0x + 3*(1-tn)*(1-tn)*tn*p1x + 3*(1-tn)*tn*tn*p2x + tn*tn*tn*p3x;
-                yn = (1-tn)*(1-tn)*(1-tn)*p0y + 3*(1-tn)*(1-tn)*tn*p1y + 3*(1-tn)*tn*tn*p2y + tn*tn*tn*p3y;
-    
-                var tonext = dist(xn, yn, x, y);
-                totald += tonext;
-            }
-            steps = 2 + round(totald/det);
-    
-            for(var st = 0; st < steps; st++){
-                var t = map(st, 0, steps, 0, 1);
-                x = (1-t)*(1-t)*(1-t)*p0x + 3*(1-t)*(1-t)*t*p1x + 3*(1-t)*t*t*p2x + t*t*t*p3x;
-                y = (1-t)*(1-t)*(1-t)*p0y + 3*(1-t)*(1-t)*t*p1y + 3*(1-t)*t*t*p2y + t*t*t*p3y;
-    
-                hobbypts.push(createVector(x, y));
-            }
-        }
-        if(algorithm == 1){
-            var t = 0;
-            var dt = 0.05;
-            while(t < 1.-dt/2){
-                x = (1-t)*(1-t)*(1-t)*p0x + 3*(1-t)*(1-t)*t*p1x + 3*(1-t)*t*t*p2x + t*t*t*p3x;
-                y = (1-t)*(1-t)*(1-t)*p0y + 3*(1-t)*(1-t)*t*p1y + 3*(1-t)*t*t*p2y + t*t*t*p3y;
-                hobbypts.push(createVector(x, y));
-    
-                var tn = t + dt;
-                xn = (1-tn)*(1-tn)*(1-tn)*p0x + 3*(1-tn)*(1-tn)*tn*p1x + 3*(1-tn)*tn*tn*p2x + tn*tn*tn*p3x;
-                yn = (1-tn)*(1-tn)*(1-tn)*p0y + 3*(1-tn)*(1-tn)*tn*p1y + 3*(1-tn)*tn*tn*p2y + tn*tn*tn*p3y;
-                var tonext = dist(xn, yn, x, y);
-                var offsc = tonext/det;
-                dt = dt/offsc;
-    
-                t = t + dt;
-            }
-        }
-        
-    }
-    return hobbypts;
-}
 
 
 function map(v, v1, v2, v3, v4){
