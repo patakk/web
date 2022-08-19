@@ -5,6 +5,7 @@ let blurH;
 let blurV;
 
 var fbo;
+var velFbo;
 var effectFbo;
 var bhFbo;
 var bvFbo;
@@ -181,6 +182,7 @@ function setup(){
     const pd = pixelDensity();
     fbo = new p5Fbo({renderer: canvas, width: resx*pd*resscale, height: resy*pd*resscale});
     effectFbo = new p5Fbo({renderer: canvas, width: resx*pd*resscale, height: resy*pd*resscale});
+    velFbo = new p5Fbo({renderer: canvas, width: resx*pd*resscale, height: resy*pd*resscale});
     bhFbo = new p5Fbo({renderer: canvas, width: resx*pd*resscale, height: resy*pd*resscale});
     bvFbo = new p5Fbo({renderer: canvas, width: resx*pd*resscale, height: resy*pd*resscale});
 
@@ -188,7 +190,7 @@ function setup(){
     fbo.begin();    
     ortho(-resx/2*resscale, resx/2*resscale, -resy/2*resscale, resy/2*resscale, 0, 4444);
 
-    initWeb();
+    initSim();
 
     fbo.end();
     showall();
@@ -239,9 +241,9 @@ function initSim(){
         nnx = round(random(20, 150));
         nny = round(random(20, 150));
     }
-    nnx = nny = 80;
-    nnx = 100;
-    var dims = 200;
+    nnx = 60;
+    nny = 60;
+    var dims = 211;
     for(var j = 0; j < nny; j++){
         var row = [];
         for(var i = 0; i < nnx; i++){
@@ -261,58 +263,81 @@ function initSim(){
     var frqy = 0.03;
     frqx = random(.01, .04)
     frqy = random(.005, .01)
-    var thresh = random(.06, .06)*2;
+    var thresh1 = random(.06, .16);
+    var thresh2 = random(.06, .16);
     for(var j = 0; j < grid.length; j++){
         for(var i = 0; i < grid[j].length; i++){
             var p = grid[j][i];
-            var prob1 = power(noise(p.body.position.x*frqx+resx, p.body.position.y*frqy+resy, 31.4131), 4) < thresh;
-            var prob2 = power(noise(p.body.position.x*frqx+resx+2113.344, p.body.position.y*frqy+resy+2113.344, 55.2254), 4) < thresh;
+            var env = map(p.pos0.mag(), 0, dist(244/2,244/2,0,0), 0, 1);
+            env = map(pow(env, 4), 0, 1, .4, .8);
+            env = 1.;
+            var prob1 = power(noise(p.body.position.x*frqx+resx, p.body.position.y*frqy+resy, 31.4131), 4) < thresh1;
+            var prob2 = power(noise(p.body.position.x*frqx+resx+2113.344, p.body.position.y*frqy+resy+2113.344, 55.2254), 4) < thresh2;
             var lennz = map(power(noise(p.body.position.x*frqx+resx, p.body.position.y*frqy+resy, 87.6612), 3), 0, 1, .5, 2);
             //var mass = map(power(noise(p.body.position.x*frqx+resx, p.body.position.y*frqy+resy, 87.6612), 7), 0, 1, .5, 20);
             //p.mass = mass;
             if(i < grid[j].length-1){
                 if(prob1 && i != 0 && j != 0 && i != grid[j].length && j != grid.length){
-                    grid[j][i+1].body.mass = .1;
+                    grid[j][i+1].body.mass = .01;
                     continue;
                 }
                 else{
                     var neigh = grid[j][i+1];
                     //var inter = new Particle((neigh.pos0.x + p.body.position.x)/2, (neigh.pos0.y + p.body.position.y)/2, 3);
-                    var constr1 = getConstr(p.body, neigh.body, vec0.copy(), vec0.copy(), .99*lennz*p.pos0.dist(neigh.pos0), .1, 'h');
-                    //var constr2 = getConstr(inter.body, neigh.body, vec0.copy(), vec0.copy(), .99*lennz*inter.pos0.dist(neigh.pos0), .3);
+                    var constr1 = getConstr(p.body, neigh.body, vec0.copy(), vec0.copy(), env*lennz*p.pos0.dist(neigh.pos0), .1, 'h');
+                    //var constr2 = getConstr(inter.body, neigh.body, vec0.copy(), vec0.copy(), env*lennz*inter.pos0.dist(neigh.pos0), .3);
                     bandc.push(constr1);
                     //bandc.push(constr2);
                 }
             }
             if(j < grid.length-1){
                 if(prob2 && i != 0 && j != 0 && i != grid[j].length && j != grid.length){
-                    grid[j+1][i].body.mass = .1;
+                    grid[j+1][i].body.mass = .01;
                     continue;
                 }
                 else{
                     var neigh = grid[j+1][i];
                     //var inter = new Particle((neigh.pos0.x + p.body.position.x)/2, (neigh.pos0.y + p.body.position.y)/2, 3);
-                    var constr1 = getConstr(p.body, neigh.body, vec0.copy(), vec0.copy(), .99*lennz*p.pos0.dist(neigh.pos0), .1, 'v');
-                    //var constr2 = getConstr(inter.body, neigh.body, vec0.copy(), vec0.copy(), .99*lennz*inter.pos0.dist(neigh.pos0), .3);
+                    var constr1 = getConstr(p.body, neigh.body, vec0.copy(), vec0.copy(), env*lennz*p.pos0.dist(neigh.pos0), .1, 'v');
+                    //var constr2 = getConstr(inter.body, neigh.body, vec0.copy(), vec0.copy(), env*lennz*inter.pos0.dist(neigh.pos0), .3);
                     bandc.push(constr1);
                     //bandc.push(constr2);
                 }
             }
+            var dd = round(fxrand());
             if(i == 0 && j == 0){
-                var constr = getConstr(p.body, null, vec0.copy(), cv_(-resx/2, -resy/2), random(.2, .7)*p.pos0.dist(cv_(-resx/2, -resy/2)), .9, 'red');
+                var constr = getConstr(p.body, null, vec0.copy(), cv_(-(resx/2-15)+dd*.5*random(resx), -(resy/2-15)+(1-dd)*.5*random(resy)), 3, .9, 'red');
                 bandc.push(constr);
             }
-            if(i == grid[j].length-1 && j == 0){
-                var constr = getConstr(p.body, null, vec0.copy(), cv_(+resx/2, -resy/2), random(.2, .7)*p.pos0.dist(cv_(+resx/2, -resy/2)), .9, 'red');
+            else if(i == grid[j].length-1 && j == 0){
+                var constr = getConstr(p.body, null, vec0.copy(), cv_(+(resx/2-15)-dd*.5*random(resx), -(resy/2-15)+(1-dd)*.5*random(resy)), 3, .9, 'red');
                 bandc.push(constr);
             }
-            if(i == grid[j].length-1 && j == grid.length-1){
-                var constr = getConstr(p.body, null, vec0.copy(), cv_(+resx/2, +resy/2), random(.2, .7)*p.pos0.dist(cv_(+resx/2, +resy/2)), .9, 'red');
+            else if(i == grid[j].length-1 && j == grid.length-1){
+                var constr = getConstr(p.body, null, vec0.copy(), cv_(+(resx/2-15)-dd*.5*random(resx), +(resy/2-15)-(1-dd)*.5*random(resy)), 3, .9, 'red');
                 bandc.push(constr);
             }
-            if(i == 0 && j == grid.length-1){
-                var constr = getConstr(p.body, null, vec0.copy(), cv_(-resx/2, +resy/2), random(.2, .7)*p.pos0.dist(cv_(-resx/2, +resy/2)), .9, 'red');
+            else if(i == 0 && j == grid.length-1){
+                var constr = getConstr(p.body, null, vec0.copy(), cv_(-(resx/2-15)+dd*.5*random(resx), +(resy/2-15)-(1-dd)*.5*random(resy)), 3, .9, 'red');
                 bandc.push(constr);
+            }
+            else{
+                if(j == 0 && fxrand() < .3){
+                    var constr = getConstr(p.body, null, vec0.copy(), cv_(map(p.pos0.x, -200, 200, -300, 300), -(resy/2-15)), 3, .1, 'red');
+                    //bandc.push(constr);
+                }
+                if(j == grid.length-1 && fxrand() < .3){
+                    var constr = getConstr(p.body, null, vec0.copy(), cv_(map(p.pos0.x, -200, 200, -300, 300), +(resy/2-15)), 3, .1, 'red');
+                    //bandc.push(constr);
+                }
+                if(i == 0 && fxrand() < .3){
+                    var constr = getConstr(p.body, null, vec0.copy(), cv_(-(resx/2-15), p.pos0.y), 3, .1, 'red');
+                    //bandc.push(constr);
+                }
+                if(i == grid[j].length-1 && fxrand() < .3){
+                    var constr = getConstr(p.body, null, vec0.copy(), cv_(+(resx/2-15), p.pos0.y), 3, .1, 'red');
+                    //bandc.push(constr);
+                }
             }
         }
     }
@@ -345,10 +370,11 @@ var renderMode;
 var frqh = map(fxrand(), 0, 1, 0.0005, 0.03);
 var frqv = map(fxrand(), 0, 1, 0.0005, 0.03);
 
-function drawSim() {
+function drawSim(drawVelocity) {
 
     stroke(.1);
     strokeWeight(3.6);
+    strokeWeight(2.2);
     noFill();
 
     allConstraints = Composite.allConstraints(engine.world);
@@ -374,15 +400,30 @@ function drawSim() {
             co = palette0[floor((k*frqv)+ 18)%palette0.length]
         }
 
-        if(renderMode == 'simple'){
-            stroke(...co);
-            stroke(.7);
-            line(x1, y1, x2, y2);
+        if(!drawVelocity){
+            if(renderMode == 'simple'){
+                stroke(...co);
+                stroke(.1);
+                line(x1, y1, x2, y2);
+            }
+            if(renderMode == 'detail'){
+                stroke(...co);
+                stroke(.1);
+                line(x1, y1, x2, y2);
+            }
         }
-        if(renderMode == 'detail'){
-            noStroke();
-            fill(...co);
-            myline(x1, y1, x2, y2);
+        else{
+            var vxa = constr.bodyA ? constr.bodyA.velocity.x : 0;
+            var vya = constr.bodyA ? constr.bodyA.velocity.y : 0;
+            var vxb = constr.bodyB ? constr.bodyB.velocity.x : 0;
+            var vyb = constr.bodyB ? constr.bodyB.velocity.y : 0;
+
+            var r1 = map(constrain(vxa, -2, 2), -2, 2, 0, 1);
+            var g1 = map(constrain(vya, -2, 2), -2, 2, 0, 1);
+            var r2 = map(constrain(vxb, -2, 2), -2, 2, 0, 1);
+            var g2 = map(constrain(vyb, -2, 2), -2, 2, 0, 1);
+
+            hackLine(x1, y1, x2, y2, [r1,g1,0], [r2,g2,0], 14.2)
         }
     }
 
@@ -394,6 +435,30 @@ function drawSim() {
     for (var k = 0; k < grounds.length; k++) {
         //grounds[k].draw();
     }
+}
+
+function hackLine(x1, y1, x2, y2, c1, c2, th){
+    th /= 2;
+    var a = createVector(x1, y1);
+    var b = createVector(x2, y2);
+    var dir = p5.Vector.sub(b, a);
+    dir.normalize();
+    dir.rotate(PI/2);
+    dir.mult(th);
+    var p1 = p5.Vector.sub(a, dir);
+    var p2 = p5.Vector.add(a, dir);
+    var p3 = p5.Vector.add(b, dir);
+    var p4 = p5.Vector.sub(b, dir);
+
+    noStroke();
+    beginShape();
+    fill(...c1);
+    vertex(p1.x, p1.y);
+    vertex(p2.x, p2.y);
+    fill(...c2);
+    vertex(p3.x, p3.y);
+    vertex(p4.x, p4.y);
+    endShape();
 }
 
 class Particle{
@@ -459,16 +524,14 @@ bgc2 = rgb2hsl(...bgc2);
 bgc2[2] = 0.16;
 bgc2 = hsl2rgb(...bgc2);
 
+bgc = [.62, .62, .62]
+
 function draw(){
     fbo.begin();
     clear();
     ortho(-resx/2*resscale, resx/2*resscale, -resy/2*resscale, resy/2*resscale, 0, 4444);
     push();
     scale(resscale);
-
-    //bgc = [.12, .12, .15]
-    //bgc = [.62, .62, .65]
-    //background(...bgc);
     noStroke();
     beginShape();
     fill(...bgc);
@@ -483,20 +546,36 @@ function draw(){
             runSim();
         }
     }
-    
-    //allConstraints = Composite.allConstraints(engine.world);
-    //for(var k = 0; k < allConstraints.length; k++){
-        //var constr = allConstraints[k];
-        //constr.length = 5+0*sin(frameCount*0.01);
-    //}
     drawSim();
-
-    fill(.9, .2, .1);
-    noStroke();
-    //rect(mouse.position.x, mouse.position.y, 8, 8);
     pop();
-
     fbo.end();
+    
+    if(renderMode == 'detail'){
+        velFbo.begin();
+        clear();
+        ortho(-resx/2*resscale, resx/2*resscale, -resy/2*resscale, resy/2*resscale, 0, 4444);
+        push();
+        scale(resscale);
+        noStroke();
+        background(0);
+        drawSim(true);
+        pop();
+        velFbo.end();
+    }
+    else{
+        velFbo.begin();
+        clear();
+        ortho(-resx/2*resscale, resx/2*resscale, -resy/2*resscale, resy/2*resscale, 0, 4444);
+        push();
+        scale(resscale);
+        noStroke();
+        background(0);
+        pop();
+        velFbo.end();
+    }
+
+
+
     showall();
     //issim = false;
     //drawAutomata();
@@ -756,7 +835,6 @@ class Line{
       if(this.label == 'wall'){
         stroke(55, 33, 99+(1000*noise(this.x1+this.x2,this.y1+this.y2))%166);
       }
-      //stroke(222);
       line(this.x1, this.y1, this.x2, this.y2);
       //line(this.x1+random(-6,6), this.y1+random(-6,6), this.x2+random(-6,6), this.y2+random(-6,6));
     }
@@ -771,36 +849,42 @@ function showall(){
     //pg.pop();
     //pg.line(0,0,mouseX-width/2,mouseY-height/2);
 
-    var dir = [cos(an), sin(an)]
-    blurH.setUniform('tex0', fbo.getTexture());
-    //blurH.setUniform('tex1', mask);
-    blurH.setUniform('texelSize', [1.0/resx/resscale, 1.0/resy/resscale]);
-    blurH.setUniform('direction', [dir[0], [1]]);
-    blurH.setUniform('u_time', frameCount+globalseed*.01);
-    blurH.setUniform('amp', .85);
-    blurH.setUniform('seed', (globalseed*.12134)%33.+random(.1,11));
-    //blurpass1.shader(blurH);
-    //blurpass1.quad(-1,-1,1,-1,1,1,-1,1);
-    bhFbo.begin();
-    clear();
-    shader(blurH);
-    quad(-1,-1,1,-1,1,1,-1,1);
-    bhFbo.end();
+    var tempFbo = fbo;
+    for(var qq = 0; qq < 5; qq++){
+        var dir = [cos(an), sin(an)]
+        dir = [1, 0];
+        blurH.setUniform('tex0', tempFbo.getTexture());
+        blurH.setUniform('tex1', velFbo.getTexture());
+        blurV.setUniform('motionMask', [1, 0]);
+        blurH.setUniform('texelSize', [1.0/resx/resscale, 1.0/resy/resscale]);
+        blurH.setUniform('direction', [dir[0], [1]]);
+        blurH.setUniform('u_time', frameCount+globalseed*.01);
+        blurH.setUniform('amp', .85);
+        blurH.setUniform('seed', (globalseed*.12134)%33.+random(.1,11));
+        bhFbo.begin();
+        clear();
+        shader(blurH);
+        quad(-1,-1,1,-1,1,1,-1,1);
+        bhFbo.end();
+        
+        blurV.setUniform('tex0', bhFbo.getTexture());
+        blurV.setUniform('tex1', velFbo.getTexture());
+        blurV.setUniform('motionMask', [0, 1]);
+        blurV.setUniform('texelSize', [1.0/resx/resscale, 1.0/resy/resscale]);
+        blurV.setUniform('direction', [-dir[1], dir[0]]);
+        blurV.setUniform('u_time', frameCount+globalseed*.01);
+        blurV.setUniform('amp', .85);
+        blurV.setUniform('seed', (globalseed*.12134)%33.+random(.1,11));
+        bvFbo.begin();
+        clear();
+        shader(blurV);
+        quad(-1,-1,1,-1,1,1,-1,1);
+        bvFbo.end();
+
+        tempFbo = bvFbo;
+    }
+    bvFbo = tempFbo;
     
-    blurV.setUniform('tex0', bhFbo.getTexture());
-    //blurV.setUniform('tex1', mask);
-    blurV.setUniform('texelSize', [1.0/resx/resscale, 1.0/resy/resscale]);
-    blurV.setUniform('direction', [-dir[1], dir[0]]);
-    blurV.setUniform('u_time', frameCount+globalseed*.01);
-    blurV.setUniform('amp', .85);
-    blurV.setUniform('seed', (globalseed*.12134)%33.+random(.1,11));
-    //blurpass2.shader(blurV);
-    //blurpass2.quad(-1,-1,1,-1,1,1,-1,1);
-    bvFbo.begin();
-    clear();
-    shader(blurV);
-    quad(-1,-1,1,-1,1,1,-1,1);
-    bvFbo.end();
 
     effect.setUniform('tex0', fbo.getTexture());
     effect.setUniform('tex1', bvFbo.getTexture());
@@ -833,6 +917,7 @@ function showall(){
     //image(effectpass, 0, 0, mm-18, mm-18);
     var xx = 0;
     //image(pg, 0, 0, mm*resx/resy-xx, mm-xx);
+    //effectFbo.draw(0, 0, width, height);
     effectFbo.draw(0, 0, width, height);
 
 }
@@ -921,8 +1006,8 @@ function myline(x1, y1, x2, y2){
             ellipse(
                 map(power(noise(x1,k+x1,y1+62.5524),4), 0, 1, -.25, .25), 
                 map(power(noise(x1,k+x1,y1+13.7442),4), 0, 1, -.25, .25), 
-                map(power(noise(x1,k+x1,y1+55.313),4),  0, 1,  2., 4.), 
-                map(power(noise(x1+31.31,k+x1,y1),4),   0, 1,  2., 4.)
+                map(power(noise(x1,k+x1,y1+55.313),4),  0, 1,  2., 4.)*.415, 
+                map(power(noise(x1+31.31,k+x1,y1),4),   0, 1,  2., 4.)*.415
             );
             pop();
         }

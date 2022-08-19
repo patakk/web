@@ -12,6 +12,7 @@ uniform sampler2D tex1;
 
 // the size of a texel or 1.0 / width , 1.0 / height
 uniform vec2 texelSize;
+uniform vec2 motionMask;
 uniform float amp;
 uniform float seed;
 
@@ -162,10 +163,24 @@ vec3 gaussianBlur( sampler2D t, vec2 texUV, vec2 stepSize ){
 		// add it all up
 	    colOut +=  col;                                                                                                                               
 	}
+    vec3 diff3 = texture2D(t, texUV).xyz - colOut;
+    float diff = abs(diff3.r)*2.;
+    if(diff < 0.0){
+
+    }
+    diff = 1. - diff;
 
 	// our final value is returned as col out
 	return colOut;                                                                                                                                                   
 } 
+
+float power(float p, float g) {
+    if (p < 0.5)
+        return 0.5 * pow(2.*p, g);
+    else
+        return 1. - 0.5 * pow(2.*(1. - p), g);
+}
+
 
 
 void main() {
@@ -184,11 +199,14 @@ void main() {
     ff = ff + .2;
 	ff = smoothstep(.26+.4, .38+.4, ff);
 
-    float ffx = fff(uv*vec2(3.,3.)*13.2, 0.*seed+u_time+55.2214);
-    float ffy = fff(uv*vec2(3.,3.)*13.2, 0.*seed+u_time+123.651);
+    float ffx = fff(uv*vec2(3.,3.)*25.2, 0.*seed+55.2214);
+    float ffy = fff(uv*vec2(3.,3.)*25.2, 0.*seed+123.651);
 
-    ffx = .0 + .99*smoothstep(.2, .8, ffx);
-    ffy = .0 + .99*smoothstep(.2, .8, ffy);
+    ffx = .0 + .99*pow(smoothstep(.15, .999, ffx), 1.);
+    ffy = .0 + .99*pow(smoothstep(.15, .999, ffy), 1.);
+    vec2 faa = vec2(ffx, ffy);
+    float darken = length(faa)/1.5;
+    darken = darken*.2;
 
 
     float dd = pow(length(uv-vec2(.5))/1.5, 2.)*3.;
@@ -204,19 +222,35 @@ void main() {
 	vec3 blur;
 
     
-    //vec4 bgpg = texture2D(tex1, uv);
+    vec4 t0 = texture2D(tex0, uv);
+    vec4 motion0 = texture2D(tex1, uv);
+    vec4 motion = motion0;
+    motion0.xy *= motionMask.xy;
+    motion.xy *= motionMask.xy;
+    motion.r = 2.*abs(motion.r-.5);
+    motion.g = 2.*abs(motion.g-.5);
+    if(motion0.r == 0.0)
+        motion.r = 0.;
+    if(motion0.g == 0.0)
+        motion.g = 0.;
+    //float mot = pow(motion.r + motion.g, 1.4);
+    float mot = motion.r + motion.g;
 	//vec3 blur1 = gaussianBlur(tex0, uv, texelSize * vec2(ffx, ffy) *amp*.2 + 0.*texelSize * vec2(ffx, ffy) * amp*3. * (3.*pow(uv.y, 6.)));
-	//vec3 blur2 = gaussianBlur(tex0, uv, texelSize * vec2(ffx, ffy) *amp*.2  + 0.*texelSize * vec2(ffx, ffy) * amp*3. * (3.*pow(uv.y, 6.)));
+	//vec3 blur2 = gaussianBlur(tex0, uv, texelSize * faa *amp*.3  + 0.*texelSize * vec2(ffx, ffy) * amp*3. * (3.*pow(uv.y, 6.)));
 
-	vec3 blur1 = gaussianBlur(tex0, uv, texelSize * .5*amp*18.);
-	vec3 blur2 = gaussianBlur(tex0, uv, texelSize * .5*amp*2.);
+	vec3 blur1 = gaussianBlur(tex0, uv, texelSize * .5*amp*18.*mot);
+	vec3 blur2 = gaussianBlur(tex0, uv, texelSize * .5*amp*4.*mot);
 
     //blur = 1. - (1.-blur1) * (1.-blur2);
     blur = blur1*0. + blur2*(1.-0.); 
+    float mama = length(faa)/1.5 * (1. - blur.r);
+
+    darken = smoothstep(.1, .26, blur.r-t0.r);
+
 	//blur = gaussianBlur(tex0, uv, texelSize * amp*15.*dir * dd);
 	//blur = gaussianBlur(tex0, uv, texelSize *  amp *.65);
 
   	//gl_FragColor = vec4(ffx,ffx,ffx, 1.0);
-  	gl_FragColor = vec4(blur.rgb, 1.0);
+  	gl_FragColor = vec4(blur, 1.0);
 
 }

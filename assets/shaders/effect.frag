@@ -187,8 +187,8 @@ void main() {
     //vec4 outc = original*p + (1.-p)*scattered_original;
     //vec4 outc = (1. - (1. - scattered_original)*original);
     vec4 outc;
-    outc = (blurred_original*.5+(1.-.5)*scattered_original);  // split between blurred and scatterd
-    outc = (outc*.5+(1.-.5)*original);  // split between original image and the previous line's result
+    outc = (blurred_original*1.0+(1.-1.0)*scattered_original);  // split between blurred and scatterd
+    outc = (outc*.95+(1.-.95)*original);  // split between original image and the previous line's result
     
     if(u_usemask > .01) outc *= mask;
     //outc = (outc*.99+(1.-.99)*original);
