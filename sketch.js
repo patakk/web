@@ -241,15 +241,15 @@ function initSim(){
         nnx = round(random(20, 150));
         nny = round(random(20, 150));
     }
-    nnx = 60;
-    nny = 60;
+    nnx = 21;
+    nny = 20;
     var dims = 211;
     for(var j = 0; j < nny; j++){
         var row = [];
         for(var i = 0; i < nnx; i++){
             var x = map(i, 0, nnx-1, -dims, dims);
             var y = map(j, 0, nny-1, -dims, dims);
-            var p = new Particle(x, y, 3);
+            var p = new Particle(x, y, 5);
             row.push(p);
             particles.push(p);
             bandc.push(p.body);
@@ -263,8 +263,8 @@ function initSim(){
     var frqy = 0.03;
     frqx = random(.01, .04)
     frqy = random(.005, .01)
-    var thresh1 = random(.06, .16);
-    var thresh2 = random(.06, .16);
+    var thresh1 = random(.06, .16)*0;
+    var thresh2 = random(.06, .16)*0;
     for(var j = 0; j < grid.length; j++){
         for(var i = 0; i < grid[j].length; i++){
             var p = grid[j][i];
@@ -273,7 +273,7 @@ function initSim(){
             env = 1.;
             var prob1 = power(noise(p.body.position.x*frqx+resx, p.body.position.y*frqy+resy, 31.4131), 4) < thresh1;
             var prob2 = power(noise(p.body.position.x*frqx+resx+2113.344, p.body.position.y*frqy+resy+2113.344, 55.2254), 4) < thresh2;
-            var lennz = map(power(noise(p.body.position.x*frqx+resx, p.body.position.y*frqy+resy, 87.6612), 3), 0, 1, .5, 2);
+            var lennz = map(power(noise(p.body.position.x*frqx+resx, p.body.position.y*frqy+resy, 87.6612), 3), 0, 1, .85, 1);
             //var mass = map(power(noise(p.body.position.x*frqx+resx, p.body.position.y*frqy+resy, 87.6612), 7), 0, 1, .5, 20);
             //p.mass = mass;
             if(i < grid[j].length-1){
@@ -307,19 +307,19 @@ function initSim(){
             var dd = round(fxrand());
             if(i == 0 && j == 0){
                 var constr = getConstr(p.body, null, vec0.copy(), cv_(-(resx/2-15)+dd*.5*random(resx), -(resy/2-15)+(1-dd)*.5*random(resy)), 3, .9, 'red');
-                bandc.push(constr);
+                //bandc.push(constr);
             }
             else if(i == grid[j].length-1 && j == 0){
                 var constr = getConstr(p.body, null, vec0.copy(), cv_(+(resx/2-15)-dd*.5*random(resx), -(resy/2-15)+(1-dd)*.5*random(resy)), 3, .9, 'red');
-                bandc.push(constr);
+                //bandc.push(constr);
             }
             else if(i == grid[j].length-1 && j == grid.length-1){
                 var constr = getConstr(p.body, null, vec0.copy(), cv_(+(resx/2-15)-dd*.5*random(resx), +(resy/2-15)-(1-dd)*.5*random(resy)), 3, .9, 'red');
-                bandc.push(constr);
+                //bandc.push(constr);
             }
             else if(i == 0 && j == grid.length-1){
                 var constr = getConstr(p.body, null, vec0.copy(), cv_(-(resx/2-15)+dd*.5*random(resx), +(resy/2-15)-(1-dd)*.5*random(resy)), 3, .9, 'red');
-                bandc.push(constr);
+                //bandc.push(constr);
             }
             else{
                 if(j == 0 && fxrand() < .3){
@@ -374,7 +374,6 @@ function drawSim(drawVelocity) {
 
     stroke(.1);
     strokeWeight(3.6);
-    strokeWeight(2.2);
     noFill();
 
     allConstraints = Composite.allConstraints(engine.world);
@@ -403,12 +402,12 @@ function drawSim(drawVelocity) {
         if(!drawVelocity){
             if(renderMode == 'simple'){
                 stroke(...co);
-                stroke(.1);
+                stroke(.9);
                 line(x1, y1, x2, y2);
             }
             if(renderMode == 'detail'){
                 stroke(...co);
-                stroke(.1);
+                stroke(.9);
                 line(x1, y1, x2, y2);
             }
         }
@@ -422,6 +421,11 @@ function drawSim(drawVelocity) {
             var g1 = map(constrain(vya, -2, 2), -2, 2, 0, 1);
             var r2 = map(constrain(vxb, -2, 2), -2, 2, 0, 1);
             var g2 = map(constrain(vyb, -2, 2), -2, 2, 0, 1);
+            
+            var r1 = constrain(abs(vxa)/2, 0, 1);
+            var g1 = constrain(abs(vya)/2, 0, 1);
+            var r2 = constrain(abs(vxb)/2, 0, 1);
+            var g2 = constrain(abs(vyb)/2, 0, 1);
 
             hackLine(x1, y1, x2, y2, [r1,g1,0], [r2,g2,0], 14.2)
         }
@@ -524,7 +528,7 @@ bgc2 = rgb2hsl(...bgc2);
 bgc2[2] = 0.16;
 bgc2 = hsl2rgb(...bgc2);
 
-bgc = [.62, .62, .62]
+bgc = [.1, .1, .1]
 
 function draw(){
     fbo.begin();
@@ -550,7 +554,7 @@ function draw(){
     pop();
     fbo.end();
     
-    if(renderMode == 'detail'){
+    if(renderMode == 'detail' || showvel){
         velFbo.begin();
         clear();
         ortho(-resx/2*resscale, resx/2*resscale, -resy/2*resscale, resy/2*resscale, 0, 4444);
@@ -849,7 +853,7 @@ function showall(){
     //pg.pop();
     //pg.line(0,0,mouseX-width/2,mouseY-height/2);
 
-    var tempFbo = fbo;
+    var tempFbo = showvel ? velFbo : fbo;
     for(var qq = 0; qq < 5; qq++){
         var dir = [cos(an), sin(an)]
         dir = [1, 0];
@@ -859,7 +863,7 @@ function showall(){
         blurH.setUniform('texelSize', [1.0/resx/resscale, 1.0/resy/resscale]);
         blurH.setUniform('direction', [dir[0], [1]]);
         blurH.setUniform('u_time', frameCount+globalseed*.01);
-        blurH.setUniform('amp', .85);
+        blurH.setUniform('amp', .85*(1. - showvel));
         blurH.setUniform('seed', (globalseed*.12134)%33.+random(.1,11));
         bhFbo.begin();
         clear();
@@ -873,7 +877,7 @@ function showall(){
         blurV.setUniform('texelSize', [1.0/resx/resscale, 1.0/resy/resscale]);
         blurV.setUniform('direction', [-dir[1], dir[0]]);
         blurV.setUniform('u_time', frameCount+globalseed*.01);
-        blurV.setUniform('amp', .85);
+        blurV.setUniform('amp', .85*(1. - showvel));
         blurV.setUniform('seed', (globalseed*.12134)%33.+random(.1,11));
         bvFbo.begin();
         clear();
@@ -918,7 +922,10 @@ function showall(){
     var xx = 0;
     //image(pg, 0, 0, mm*resx/resy-xx, mm-xx);
     //effectFbo.draw(0, 0, width, height);
-    effectFbo.draw(0, 0, width, height);
+    if(showvel)
+        effectFbo.draw(0, 0, width, height);
+    else
+        effectFbo.draw(0, 0, width, height);
 
 }
 
@@ -1026,6 +1033,7 @@ function mouseClicked(){
 }
 
 var invi = false;
+var showvel = false;
 
 function keyPressed(){
     //noiseSeed(round(random(1000)));
@@ -1033,6 +1041,9 @@ function keyPressed(){
     if(key == 'g'){
         engine.gravity.y = -engine.gravity.y;
         engine.gravity.y = .03;
+    }
+    if(key == 'q'){
+        showvel = !showvel;
     }
     if(key == 'c'){
         if (renderMode == 'simple') {

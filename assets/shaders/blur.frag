@@ -227,8 +227,6 @@ void main() {
     vec4 motion = motion0;
     motion0.xy *= motionMask.xy;
     motion.xy *= motionMask.xy;
-    motion.r = 2.*abs(motion.r-.5);
-    motion.g = 2.*abs(motion.g-.5);
     if(motion0.r == 0.0)
         motion.r = 0.;
     if(motion0.g == 0.0)
