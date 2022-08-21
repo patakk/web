@@ -199,8 +199,8 @@ void main() {
     ff = ff + .2;
 	ff = smoothstep(.26+.4, .38+.4, ff);
 
-    float ffx = fff(uv*vec2(3.,3.)*25.2, 0.*seed+55.2214);
-    float ffy = fff(uv*vec2(3.,3.)*25.2, 0.*seed+123.651);
+    float ffx = fff(uv*vec2(3.,3.)*1.2, 0.*seed+55.2214);
+    float ffy = fff(uv*vec2(3.,3.)*1.2, 0.*seed+123.651);
 
     ffx = .0 + .99*pow(smoothstep(.15, .999, ffx), 1.);
     ffy = .0 + .99*pow(smoothstep(.15, .999, ffy), 1.);
@@ -234,10 +234,12 @@ void main() {
     //float mot = pow(motion.r + motion.g, 1.4);
     float mot = motion.r + motion.g;
 	//vec3 blur1 = gaussianBlur(tex0, uv, texelSize * vec2(ffx, ffy) *amp*.2 + 0.*texelSize * vec2(ffx, ffy) * amp*3. * (3.*pow(uv.y, 6.)));
-	//vec3 blur2 = gaussianBlur(tex0, uv, texelSize * faa *amp*.3  + 0.*texelSize * vec2(ffx, ffy) * amp*3. * (3.*pow(uv.y, 6.)));
+	vec3 blur2 = gaussianBlur(tex0, uv, texelSize * faa *amp*1.3  + 0.*texelSize * vec2(ffx, ffy) * amp*3. * (3.*pow(uv.y, 6.)));
 
 	vec3 blur1 = gaussianBlur(tex0, uv, texelSize * .5*amp*18.*mot);
-	vec3 blur2 = gaussianBlur(tex0, uv, texelSize * .5*amp*4.*mot);
+	//vec3 blur2 = gaussianBlur(tex0, uv, texelSize * .5*amp*4.*mot);
+	//blur2 = gaussianBlur(tex0, uv, texelSize * .5*amp*.2);
+
 
     //blur = 1. - (1.-blur1) * (1.-blur2);
     blur = blur1*0. + blur2*(1.-0.); 

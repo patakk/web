@@ -4,12 +4,14 @@ function issamepoint(p1, p2) {
 }
 
 function findLineIntersection(u, w, v, z) {
+    if(!doLinesIntersect(u, w, v, z))
+      return false;
     var uw = p5.Vector.sub(w, u);
     var vz = p5.Vector.sub(z, v);
     var uv = p5.Vector.sub(v, u);
     let beta = uw.angleBetween(vz);
-    if (beta < radians(0.1))
-        return false;
+    //if (beta < radians(0.1))
+    //    return false;
     let alfa = uw.angleBetween(uv);
 
     var vz_ = p5.Vector.sub(z, v);
